@@ -89,12 +89,20 @@ async function readStdin(timeoutMs = 5000) {
     });
 }
 async function main() {
+    const logFile = join(homedir(), ".config", "herald", "debug.log");
+    const log = async (msg) => {
+        const line = `[${new Date().toISOString()}] ${msg}\n`;
+        await writeFile(logFile, line, { flag: "a" }).catch(() => { });
+    };
+    await log("on-stop triggered");
     const config = await loadConfig();
     if (!config.enabled) {
+        await log("disabled, exiting");
         process.exit(0);
     }
     // Read hook input from stdin
     const stdinText = await readStdin();
+    await log(`stdin: ${stdinText.substring(0, 200)}`);
     let input = {};
     try {
         input = JSON.parse(stdinText);
@@ -102,10 +110,13 @@ async function main() {
     catch {
         // No input or invalid JSON
     }
+    await log(`session_id: ${input.session_id}`);
     // Prevent duplicate notifications for the same session
     if (input.session_id) {
         const gotLock = await acquireSessionLock(input.session_id);
+        await log(`lock result: ${gotLock}`);
         if (!gotLock) {
+            await log("lock held, exiting");
             process.exit(0); // Another instance already handling this session
         }
     }
@@ -137,8 +148,9 @@ async function main() {
                 }
             }
             const textToSpeak = finalText || "Done";
-            console.log(`[Herald TTS] ${textToSpeak}`);
+            await log(`speaking: ${textToSpeak}`);
             await ttsProvider.speak(textToSpeak);
+            await log("speech complete");
             break;
         }
         case "alerts": {
