@@ -43,7 +43,7 @@ export async function summarizeWithClaude(
 
   return new Promise((resolve) => {
     try {
-      const proc = spawn("claude", ["-p", fullPrompt, "--no-input"], {
+      const proc = spawn("claude", ["-p", fullPrompt, "--tools", ""], {
         stdio: ["ignore", "pipe", "pipe"],
       });
 
