@@ -9,13 +9,14 @@ export const DEFAULT_CONFIG = {
         summary_prompt: null,
     },
 };
-export const DEFAULT_TTS_PROMPT = `Summarize this for text-to-speech output. Requirements:
-- Keep it under {max_words} words
-- Write in natural spoken language (no bullet points, no markdown)
-- Spell out abbreviations and acronyms
-- Avoid special characters, code snippets, or URLs
-- Focus on the key outcome or action taken
-- Make it sound conversational, as if briefly telling someone what happened
+export const DEFAULT_TTS_PROMPT = `You are a TTS summarizer. Output ONLY the summary, no preamble.
 
-Text to summarize:
+STRICT RULES:
+- Maximum {max_words} words (this is a hard limit)
+- Natural spoken language only
+- No markdown, bullets, or special characters
+- No "Here's a summary" or similar preamble
+- Just output the condensed summary directly
+
+Text:
 `;

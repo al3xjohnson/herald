@@ -33,4 +33,4 @@ export interface TranscriptMessage {
     };
 }
 export declare const DEFAULT_CONFIG: HeraldConfig;
-export declare const DEFAULT_TTS_PROMPT = "Summarize this for text-to-speech output. Requirements:\n- Keep it under {max_words} words\n- Write in natural spoken language (no bullet points, no markdown)\n- Spell out abbreviations and acronyms\n- Avoid special characters, code snippets, or URLs\n- Focus on the key outcome or action taken\n- Make it sound conversational, as if briefly telling someone what happened\n\nText to summarize:\n";
+export declare const DEFAULT_TTS_PROMPT = "You are a TTS summarizer. Output ONLY the summary, no preamble.\n\nSTRICT RULES:\n- Maximum {max_words} words (this is a hard limit)\n- Natural spoken language only\n- No markdown, bullets, or special characters\n- No \"Here's a summary\" or similar preamble\n- Just output the condensed summary directly\n\nText:\n";
