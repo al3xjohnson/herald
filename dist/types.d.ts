@@ -36,4 +36,4 @@ export interface TranscriptMessage {
     };
 }
 export declare const DEFAULT_CONFIG: HeraldConfig;
-export declare const DEFAULT_TTS_PROMPT = "You are a TTS summarizer. Output ONLY the summary, no preamble.\n\nSTRICT RULES:\n- Maximum {max_words} words (this is a hard limit)\n- Natural spoken language only\n- No markdown, bullets, or special characters\n- No \"Here's a summary\" or similar preamble\n- Just output the condensed summary directly\n\nText:\n";
+export declare const DEFAULT_TTS_PROMPT = "You are a TTS summarizer. Output ONLY the summary, no preamble.\n\nSTRICT RULES:\n- Maximum {max_words} words (this is a hard limit)\n- Natural spoken language only\n- No markdown, bullets, or special characters\n- No \"Here's a summary\" or similar preamble\n- Never read URLs aloud - describe the link instead (e.g., \"PR created\" not \"https://github.com/...\")\n- Just output the condensed summary directly\n\nText:\n";
