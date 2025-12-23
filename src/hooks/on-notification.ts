@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { basename } from "path";
 import { loadConfig } from "../lib/config.js";
 import { playPing } from "../lib/audio.js";
 import { getProvider } from "../tts/index.js";
@@ -56,7 +57,8 @@ async function main() {
     }
 
     case "alerts": {
-      playPing();
+      const projectName = input.cwd ? basename(input.cwd) : undefined;
+      playPing(projectName);
       break;
     }
   }

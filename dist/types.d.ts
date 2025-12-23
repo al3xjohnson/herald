@@ -18,10 +18,12 @@ export interface HeraldConfig {
 export interface StopHookInput {
     transcript_path?: string;
     session_id?: string;
+    cwd?: string;
 }
 export interface NotificationHookInput {
     type: string;
     message?: string;
+    cwd?: string;
 }
 export interface TranscriptMessage {
     type: "user" | "assistant" | "system";

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
-import { join } from "path";
+import { join, basename } from "path";
 import { homedir } from "os";
 import { loadConfig } from "../lib/config.js";
 import { playAlert } from "../lib/audio.js";
@@ -149,7 +149,8 @@ async function main() {
             break;
         }
         case "alerts": {
-            playAlert();
+            const projectName = input.cwd ? basename(input.cwd) : undefined;
+            playAlert(projectName);
             break;
         }
         case "silent":

@@ -39,21 +39,38 @@ export function playSound(type) {
 /**
  * Activate VS Code window (bring to front).
  * Cross-platform support.
+ * @param projectName - Optional project/folder name to find the correct VS Code window
  */
-export function activateEditor() {
+export function activateEditor(projectName) {
     const platform = process.platform;
     if (platform === "darwin") {
-        // macOS: Use AppleScript
-        spawn("osascript", ["-e", 'tell application "Visual Studio Code" to activate'], {
+        // macOS: Use AppleScript with System Events to find the right window
+        const script = projectName
+            ? `
+        tell application "System Events"
+          tell process "Code"
+            set frontmost to true
+            repeat with w in windows
+              if name of w contains "${projectName}" then
+                perform action "AXRaise" of w
+                exit repeat
+              end if
+            end repeat
+          end tell
+        end tell
+      `
+            : 'tell application "Visual Studio Code" to activate';
+        spawn("osascript", ["-e", script], {
             stdio: "ignore",
             detached: true,
         }).unref();
     }
     else if (platform === "win32") {
         // Windows: Use PowerShell with COM automation
+        const windowTitle = projectName || "Visual Studio Code";
         const script = `
       $shell = New-Object -ComObject WScript.Shell
-      $shell.AppActivate('Visual Studio Code')
+      $shell.AppActivate('${windowTitle}')
     `;
         spawn("powershell", ["-Command", script], {
             stdio: "ignore",
@@ -63,7 +80,8 @@ export function activateEditor() {
     }
     else {
         // Linux: Use wmctrl if available
-        spawn("wmctrl", ["-a", "Visual Studio Code"], {
+        const windowTitle = projectName || "Visual Studio Code";
+        spawn("wmctrl", ["-a", windowTitle], {
             stdio: "ignore",
             detached: true,
         }).unref();
@@ -71,15 +89,17 @@ export function activateEditor() {
 }
 /**
  * Play alert sound and activate editor.
+ * @param projectName - Optional project name to find the correct VS Code window
  */
-export function playAlert() {
+export function playAlert(projectName) {
     playSound("alert");
-    activateEditor();
+    activateEditor(projectName);
 }
 /**
  * Play ping/notification sound and activate editor.
+ * @param projectName - Optional project name to find the correct VS Code window
  */
-export function playPing() {
+export function playPing(projectName) {
     playSound("ping");
-    activateEditor();
+    activateEditor(projectName);
 }
