@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile, writeFile, mkdir } from "fs/promises";
+import { readFile, writeFile, mkdir, open, unlink } from "fs/promises";
 import { existsSync } from "fs";
 import { join, basename } from "path";
 import { homedir } from "os";
@@ -9,24 +9,38 @@ import { cleanForSpeech, truncateToWords, summarizeWithClaude, } from "../lib/su
 import { getProvider } from "../tts/index.js";
 // Global TTS lock to prevent multiple plays (regardless of session ID)
 const LOCK_FILE = join(homedir(), ".config", "herald", "tts.lock");
-const LOCK_EXPIRY_MS = 5000; // 5 seconds - prevents duplicate plays within this window
-async function acquireGlobalLock() {
+const LOCK_EXPIRY_MS = 30000; // 30 seconds - covers API latency + audio playback
+async function acquireGlobalLock(expiryMs) {
     try {
         await mkdir(join(homedir(), ".config", "herald"), { recursive: true });
-        // Check if lock exists and is recent
+        // Check if lock exists and is stale (expired)
         if (existsSync(LOCK_FILE)) {
-            const content = await readFile(LOCK_FILE, "utf-8");
-            const timestamp = parseInt(content, 10);
-            if (Date.now() - timestamp < LOCK_EXPIRY_MS) {
-                return false; // Lock is held by another instance
+            try {
+                const content = await readFile(LOCK_FILE, "utf-8");
+                const timestamp = parseInt(content, 10);
+                if (Date.now() - timestamp < expiryMs) {
+                    return false; // Lock is held and not expired
+                }
+                // Lock is stale, remove it
+                await unlink(LOCK_FILE);
+            }
+            catch {
+                // Ignore errors reading stale lock
             }
         }
-        // Create/update lock
-        await writeFile(LOCK_FILE, String(Date.now()));
+        // Atomic lock acquisition using exclusive create (wx flag)
+        // This fails if file already exists, preventing race conditions
+        const handle = await open(LOCK_FILE, "wx");
+        await handle.write(String(Date.now()));
+        await handle.close();
         return true;
     }
-    catch {
-        return true; // On error, allow (fail open)
+    catch (err) {
+        // EEXIST means another process created the lock between our check and create
+        if (err && typeof err === "object" && "code" in err && err.code === "EEXIST") {
+            return false;
+        }
+        return true; // Other errors, fail open
     }
 }
 async function extractLastAssistantMessage(transcriptPath) {
@@ -109,7 +123,7 @@ async function main() {
     }
     await log(`session_id: ${input.session_id}`);
     // Prevent duplicate TTS plays (global lock, not per-session)
-    const gotLock = await acquireGlobalLock();
+    const gotLock = await acquireGlobalLock(LOCK_EXPIRY_MS);
     await log(`lock result: ${gotLock}`);
     if (!gotLock) {
         await log("lock held by another instance, exiting");
