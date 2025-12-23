@@ -17,6 +17,7 @@ STRICT RULES:
 - Natural spoken language only
 - No markdown, bullets, or special characters
 - No "Here's a summary" or similar preamble
+- Never read URLs aloud - describe the link instead (e.g., "PR created" not "https://github.com/...")
 - Just output the condensed summary directly
 
 Text:
