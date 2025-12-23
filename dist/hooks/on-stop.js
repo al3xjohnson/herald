@@ -9,8 +9,7 @@ import { cleanForSpeech, truncateToWords, summarizeWithClaude, } from "../lib/su
 import { getProvider } from "../tts/index.js";
 // Global TTS lock to prevent multiple plays (regardless of session ID)
 const LOCK_FILE = join(homedir(), ".config", "herald", "tts.lock");
-const LOCK_EXPIRY_MS_DEFAULT = 5000; // 5 seconds for local TTS
-const LOCK_EXPIRY_MS_ELEVENLABS = 30000; // 30 seconds for ElevenLabs (API + playback)
+const LOCK_EXPIRY_MS = 30000; // 30 seconds - covers API latency + audio playback
 async function acquireGlobalLock(expiryMs) {
     try {
         await mkdir(join(homedir(), ".config", "herald"), { recursive: true });
@@ -124,11 +123,7 @@ async function main() {
     }
     await log(`session_id: ${input.session_id}`);
     // Prevent duplicate TTS plays (global lock, not per-session)
-    // Use longer expiry for ElevenLabs since API + playback takes longer
-    const lockExpiry = config.tts.provider === "elevenlabs"
-        ? LOCK_EXPIRY_MS_ELEVENLABS
-        : LOCK_EXPIRY_MS_DEFAULT;
-    const gotLock = await acquireGlobalLock(lockExpiry);
+    const gotLock = await acquireGlobalLock(LOCK_EXPIRY_MS);
     await log(`lock result: ${gotLock}`);
     if (!gotLock) {
         await log("lock held by another instance, exiting");
