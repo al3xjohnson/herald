@@ -5,7 +5,7 @@ Thank you for your interest in contributing to Herald! This document provides gu
 ## Development Setup
 
 1. **Prerequisites**
-   - Node.js >= 18.0.0
+   - Node.js >= 20.0.0
    - npm
 
 2. **Clone the repository**
