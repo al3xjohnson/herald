@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, open, unlink } from "fs/promises";
+import { readFile, writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
@@ -6,7 +6,6 @@ import { createHash } from "crypto";
 
 const HISTORY_DIR = join(homedir(), ".config", "herald");
 const HISTORY_FILE = join(HISTORY_DIR, "recent.json");
-const HISTORY_LOCK_FILE = join(HISTORY_DIR, "recent.lock");
 
 // How long to remember played content for deduplication
 export const DEDUP_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -28,47 +27,8 @@ export function hashContent(text: string): string {
 }
 
 /**
- * Acquire a short-lived lock for history file operations.
- */
-async function acquireHistoryLock(maxWaitMs: number = 1000): Promise<boolean> {
-  await mkdir(HISTORY_DIR, { recursive: true });
-
-  const startTime = Date.now();
-  while (Date.now() - startTime < maxWaitMs) {
-    try {
-      const handle = await open(HISTORY_LOCK_FILE, "wx");
-      await handle.write(String(process.pid));
-      await handle.close();
-      return true;
-    } catch (err) {
-      if (
-        err &&
-        typeof err === "object" &&
-        "code" in err &&
-        err.code === "EEXIST"
-      ) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        continue;
-      }
-      return false; // Other error, fail closed
-    }
-  }
-  return false; // Timeout, fail closed
-}
-
-/**
- * Release the history lock.
- */
-async function releaseHistoryLock(): Promise<void> {
-  try {
-    await unlink(HISTORY_LOCK_FILE);
-  } catch {
-    // Ignore errors
-  }
-}
-
-/**
  * Read recent plays, filtering out expired entries and limiting to max size.
+ * NOTE: Caller must hold the unified lock before calling this.
  */
 async function readHistory(): Promise<RecentPlay[]> {
   try {
@@ -90,6 +50,7 @@ async function readHistory(): Promise<RecentPlay[]> {
 
 /**
  * Write history to disk, keeping only the most recent entries.
+ * NOTE: Caller must hold the unified lock before calling this.
  */
 async function writeHistory(plays: RecentPlay[]): Promise<void> {
   await mkdir(HISTORY_DIR, { recursive: true });
@@ -101,41 +62,25 @@ async function writeHistory(plays: RecentPlay[]): Promise<void> {
 /**
  * Check if content was recently played (duplicate).
  * Returns true if this is a duplicate that should be skipped.
+ * NOTE: Caller must hold the unified lock before calling this.
  */
 export async function isDuplicate(hash: string): Promise<boolean> {
-  const gotLock = await acquireHistoryLock();
-  if (!gotLock) {
-    // Couldn't acquire lock - treat as duplicate to be safe
-    return true;
-  }
-  try {
-    const history = await readHistory();
-    return history.some((p) => p.hash === hash);
-  } finally {
-    await releaseHistoryLock();
-  }
+  const history = await readHistory();
+  return history.some((p) => p.hash === hash);
 }
 
 /**
  * Record that content was played.
  * Call this after successfully playing a message.
+ * NOTE: Caller must hold the unified lock before calling this.
  */
 export async function recordPlay(hash: string): Promise<void> {
-  const gotLock = await acquireHistoryLock();
-  if (!gotLock) {
-    // Couldn't acquire lock - skip recording (non-critical)
-    return;
-  }
-  try {
-    const history = await readHistory();
+  const history = await readHistory();
 
-    // Don't add duplicate entries
-    if (!history.some((p) => p.hash === hash)) {
-      history.push({ hash, timestamp: Date.now() });
-      await writeHistory(history);
-    }
-  } finally {
-    await releaseHistoryLock();
+  // Don't add duplicate entries
+  if (!history.some((p) => p.hash === hash)) {
+    history.push({ hash, timestamp: Date.now() });
+    await writeHistory(history);
   }
 }
 
@@ -143,44 +88,28 @@ export async function recordPlay(hash: string): Promise<void> {
  * Check if duplicate and record in one atomic operation.
  * Returns true if this is a NEW message (should be played).
  * Returns false if this is a DUPLICATE (should be skipped).
+ * NOTE: Caller must hold the unified lock before calling this.
  */
 export async function checkAndRecord(hash: string): Promise<boolean> {
-  const gotLock = await acquireHistoryLock();
-  if (!gotLock) {
-    // Couldn't acquire lock - treat as duplicate to be safe (don't play)
-    return false;
-  }
-  try {
-    const history = await readHistory();
+  const history = await readHistory();
 
-    // Check for duplicate
-    if (history.some((p) => p.hash === hash)) {
-      return false; // Duplicate
-    }
-
-    // Record this play
-    history.push({ hash, timestamp: Date.now() });
-    await writeHistory(history);
-    return true; // New message
-  } finally {
-    await releaseHistoryLock();
+  // Check for duplicate
+  if (history.some((p) => p.hash === hash)) {
+    return false; // Duplicate
   }
+
+  // Record this play
+  history.push({ hash, timestamp: Date.now() });
+  await writeHistory(history);
+  return true; // New message
 }
 
 /**
  * Clear all history (for testing).
+ * NOTE: Caller must hold the unified lock before calling this.
  */
 export async function clearHistory(): Promise<void> {
-  const gotLock = await acquireHistoryLock();
-  if (!gotLock) {
-    // Couldn't acquire lock - skip clearing
-    return;
-  }
-  try {
-    await writeHistory([]);
-  } finally {
-    await releaseHistoryLock();
-  }
+  await writeHistory([]);
 }
 
-export { HISTORY_FILE, HISTORY_DIR, HISTORY_LOCK_FILE };
+export { HISTORY_FILE, HISTORY_DIR };

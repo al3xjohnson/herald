@@ -1,6 +1,6 @@
 {
   "name": "herald",
-  "version": "1.11.6",
+  "version": "1.11.7",
   "description": "Configurable notifications when Claude finishes - TTS or alert sounds",
   "license": "MIT",
   "author": {
@@ -15,5 +15,30 @@
     "tts",
     "text-to-speech",
     "sounds"
-  ]
+  ],
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/dist/hooks/on-stop.js",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt|elicitation_dialog",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/dist/hooks/on-notification.js",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
 }

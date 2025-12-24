@@ -2,7 +2,7 @@
 import { loadConfig } from "../lib/config.js";
 import { playPing, playSound, activateEditor } from "../lib/audio.js";
 import { withMediaControl } from "../lib/media.js";
-import { waitForPlayerLock, releasePlayerLock } from "../lib/lock.js";
+import { waitForLock, releaseLock } from "../lib/lock.js";
 import { checkAndRecord, hashContent } from "../lib/recent.js";
 import { readStdin } from "../lib/stdin.js";
 import { getProvider } from "../tts/index.js";
@@ -29,8 +29,8 @@ async function main() {
   const result = await handleNotification(input, config, {
     checkAndRecord,
     hashContent,
-    waitForPlayerLock,
-    releasePlayerLock,
+    waitForLock,
+    releaseLock,
     playSound,
     playPing,
     getProvider,

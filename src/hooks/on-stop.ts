@@ -8,7 +8,7 @@ import {
   truncateToWords,
   summarizeWithClaude,
 } from "../lib/summarize.js";
-import { waitForPlayerLock, releasePlayerLock } from "../lib/lock.js";
+import { waitForLock, releaseLock } from "../lib/lock.js";
 import { checkAndRecord, hashContent } from "../lib/recent.js";
 import { extractLastAssistantMessage } from "../lib/transcript.js";
 import { readStdin } from "../lib/stdin.js";
@@ -43,8 +43,8 @@ async function main() {
     summarizeWithClaude,
     checkAndRecord,
     hashContent,
-    waitForPlayerLock,
-    releasePlayerLock,
+    waitForLock,
+    releaseLock,
     playSound,
     playAlert,
     getProvider,

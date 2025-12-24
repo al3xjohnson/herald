@@ -5,14 +5,10 @@ const PING_MIN_DELAY_MS = 1000;
 const VALID_NOTIFICATION_TYPES = ["permission_prompt", "elicitation_dialog"];
 /**
  * Generate the message content based on notification type and config style.
+ * Uses consistent content-based messages for both modes (simpler deduplication).
  */
-export function getNotificationMessage(notificationType, sessionId, projectName, style) {
-    if (style === "alerts") {
-        // For pings, use session_id for deduplication (each session gets one ping per type)
-        const content = `ping:${notificationType}:${sessionId || projectName || "default"}`;
-        return { content, isPing: true };
-    }
-    // TTS mode
+export function getNotificationMessage(notificationType, style) {
+    // Use the same message for both modes - consistent content-based hashing
     let content;
     switch (notificationType) {
         case "permission_prompt":
@@ -24,11 +20,14 @@ export function getNotificationMessage(notificationType, sessionId, projectName,
         default:
             content = "Claude is waiting for input";
     }
-    return { content, isPing: false };
+    return { content, isPing: style === "alerts" };
 }
 /**
  * Handle a notification event.
  * This is the main business logic extracted from the hook.
+ *
+ * Flow: acquire lock → check duplicate → play → release lock
+ * Uses unified lock for entire critical section.
  */
 export async function handleNotification(input, config, deps) {
     // Check if enabled
@@ -41,21 +40,22 @@ export async function handleNotification(input, config, deps) {
         return { handled: false, reason: "invalid_type" };
     }
     const projectName = input.cwd ? basename(input.cwd) : undefined;
-    // Generate message content
-    const { content: messageContent, isPing } = getNotificationMessage(notificationType, input.session_id, projectName, config.style);
-    // Check for duplicate and record this play atomically
+    // Generate message content (consistent content-based hashing)
+    const { content: messageContent, isPing } = getNotificationMessage(notificationType, config.style);
+    // Hash content for deduplication
     const hash = deps.hashContent(messageContent);
-    const isNew = await deps.checkAndRecord(hash);
-    if (!isNew) {
-        return { handled: false, reason: "duplicate" };
-    }
-    // Wait for player lock
-    const gotLock = await deps.waitForPlayerLock();
+    // Acquire unified lock (waits for any audio playback to finish)
+    const gotLock = await deps.waitForLock();
     if (!gotLock) {
         return { handled: false, reason: "no_lock" };
     }
-    // Play the notification
     try {
+        // Check for duplicate (now protected by lock)
+        const isNew = await deps.checkAndRecord(hash);
+        if (!isNew) {
+            return { handled: false, reason: "duplicate" };
+        }
+        // Play the notification
         if (isPing) {
             if (config.preferences.activate_editor) {
                 deps.playPing(projectName);
@@ -75,7 +75,7 @@ export async function handleNotification(input, config, deps) {
         }
     }
     finally {
-        await deps.releasePlayerLock();
+        await deps.releaseLock();
     }
     return { handled: true, reason: "played" };
 }

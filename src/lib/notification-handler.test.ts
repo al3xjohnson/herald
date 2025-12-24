@@ -18,8 +18,8 @@ describe("notification-handler", () => {
   const createMockDeps = (): NotificationDeps => ({
     checkAndRecord: vi.fn().mockResolvedValue(true),
     hashContent: vi.fn((content: string) => `hash:${content}`),
-    waitForPlayerLock: vi.fn().mockResolvedValue(true),
-    releasePlayerLock: vi.fn().mockResolvedValue(undefined),
+    waitForLock: vi.fn().mockResolvedValue(true),
+    releaseLock: vi.fn().mockResolvedValue(undefined),
     playSound: vi.fn(),
     playPing: vi.fn(),
     getProvider: vi.fn().mockReturnValue(mockTTSProvider),
@@ -56,73 +56,47 @@ describe("notification-handler", () => {
 
   describe("getNotificationMessage", () => {
     describe("alerts mode", () => {
-      it("generates ping message with session_id", () => {
-        const result = getNotificationMessage(
-          "permission_prompt",
-          "session-123",
-          "my-project",
-          "alerts"
-        );
+      it("generates ping message with content-based hash", () => {
+        const result = getNotificationMessage("permission_prompt", "alerts");
 
         expect(result.isPing).toBe(true);
-        expect(result.content).toBe("ping:permission_prompt:session-123");
+        expect(result.content).toBe("Claude needs permission");
       });
 
-      it("falls back to project name when no session_id", () => {
-        const result = getNotificationMessage(
-          "permission_prompt",
-          undefined,
-          "my-project",
-          "alerts"
-        );
+      it("generates correct message for elicitation_dialog", () => {
+        const result = getNotificationMessage("elicitation_dialog", "alerts");
 
-        expect(result.content).toBe("ping:permission_prompt:my-project");
+        expect(result.isPing).toBe(true);
+        expect(result.content).toBe("Claude needs more information");
       });
 
-      it("falls back to default when no session_id or project", () => {
-        const result = getNotificationMessage(
-          "elicitation_dialog",
-          undefined,
-          undefined,
-          "alerts"
-        );
+      it("generates generic message for unknown types", () => {
+        const result = getNotificationMessage("unknown_type", "alerts");
 
-        expect(result.content).toBe("ping:elicitation_dialog:default");
+        expect(result.isPing).toBe(true);
+        expect(result.content).toBe("Claude is waiting for input");
       });
     });
 
     describe("tts mode", () => {
       it("generates TTS message for permission_prompt", () => {
-        const result = getNotificationMessage(
-          "permission_prompt",
-          "session-123",
-          "my-project",
-          "tts"
-        );
+        const result = getNotificationMessage("permission_prompt", "tts");
 
         expect(result.isPing).toBe(false);
         expect(result.content).toBe("Claude needs permission");
       });
 
       it("generates TTS message for elicitation_dialog", () => {
-        const result = getNotificationMessage(
-          "elicitation_dialog",
-          "session-123",
-          "my-project",
-          "tts"
-        );
+        const result = getNotificationMessage("elicitation_dialog", "tts");
 
+        expect(result.isPing).toBe(false);
         expect(result.content).toBe("Claude needs more information");
       });
 
       it("generates generic message for unknown types", () => {
-        const result = getNotificationMessage(
-          "unknown_type",
-          "session-123",
-          "my-project",
-          "tts"
-        );
+        const result = getNotificationMessage("unknown_type", "tts");
 
+        expect(result.isPing).toBe(false);
         expect(result.content).toBe("Claude is waiting for input");
       });
     });
@@ -138,7 +112,7 @@ describe("notification-handler", () => {
         const result = await handleNotification(input, config, deps);
 
         expect(result).toEqual({ handled: false, reason: "disabled" });
-        expect(deps.checkAndRecord).not.toHaveBeenCalled();
+        expect(deps.waitForLock).not.toHaveBeenCalled();
       });
     });
 
@@ -164,6 +138,22 @@ describe("notification-handler", () => {
       });
     });
 
+    describe("when lock unavailable", () => {
+      it("returns handled: false when lock times out", async () => {
+        const deps = createMockDeps();
+        vi.mocked(deps.waitForLock).mockResolvedValue(false);
+        const config = createConfig();
+        const input = createInput();
+
+        const result = await handleNotification(input, config, deps);
+
+        expect(result).toEqual({ handled: false, reason: "no_lock" });
+        expect(deps.playSound).not.toHaveBeenCalled();
+        expect(deps.playPing).not.toHaveBeenCalled();
+        expect(deps.checkAndRecord).not.toHaveBeenCalled();
+      });
+    });
+
     describe("with duplicate content", () => {
       it("returns handled: false when duplicate detected", async () => {
         const deps = createMockDeps();
@@ -174,22 +164,8 @@ describe("notification-handler", () => {
         const result = await handleNotification(input, config, deps);
 
         expect(result).toEqual({ handled: false, reason: "duplicate" });
-        expect(deps.waitForPlayerLock).not.toHaveBeenCalled();
-      });
-    });
-
-    describe("when lock unavailable", () => {
-      it("returns handled: false when lock times out", async () => {
-        const deps = createMockDeps();
-        vi.mocked(deps.waitForPlayerLock).mockResolvedValue(false);
-        const config = createConfig();
-        const input = createInput();
-
-        const result = await handleNotification(input, config, deps);
-
-        expect(result).toEqual({ handled: false, reason: "no_lock" });
         expect(deps.playSound).not.toHaveBeenCalled();
-        expect(deps.playPing).not.toHaveBeenCalled();
+        expect(deps.releaseLock).toHaveBeenCalled(); // Lock still released
       });
     });
 
@@ -204,7 +180,7 @@ describe("notification-handler", () => {
         expect(result).toEqual({ handled: true, reason: "played" });
         expect(deps.playPing).toHaveBeenCalledWith("project");
         expect(deps.playSound).not.toHaveBeenCalled();
-        expect(deps.releasePlayerLock).toHaveBeenCalled();
+        expect(deps.releaseLock).toHaveBeenCalled();
       });
 
       it("plays sound without editor activation", async () => {
@@ -279,7 +255,7 @@ describe("notification-handler", () => {
 
         await handleNotification(input, config, deps);
 
-        expect(deps.releasePlayerLock).toHaveBeenCalled();
+        expect(deps.releaseLock).toHaveBeenCalled();
       });
 
       it("releases lock even if playback throws", async () => {
@@ -294,7 +270,7 @@ describe("notification-handler", () => {
           "Playback failed"
         );
 
-        expect(deps.releasePlayerLock).toHaveBeenCalled();
+        expect(deps.releaseLock).toHaveBeenCalled();
       });
 
       it("releases lock even if TTS throws", async () => {
@@ -307,7 +283,18 @@ describe("notification-handler", () => {
           "TTS failed"
         );
 
-        expect(deps.releasePlayerLock).toHaveBeenCalled();
+        expect(deps.releaseLock).toHaveBeenCalled();
+      });
+
+      it("releases lock when duplicate detected", async () => {
+        const deps = createMockDeps();
+        vi.mocked(deps.checkAndRecord).mockResolvedValue(false);
+        const config = createConfig();
+        const input = createInput();
+
+        await handleNotification(input, config, deps);
+
+        expect(deps.releaseLock).toHaveBeenCalled();
       });
     });
 
@@ -330,6 +317,27 @@ describe("notification-handler", () => {
         await handleNotification(input, config, deps);
 
         expect(deps.playPing).toHaveBeenCalledWith(undefined);
+      });
+    });
+
+    describe("unified lock flow", () => {
+      it("acquires lock before checking for duplicates", async () => {
+        const deps = createMockDeps();
+        const callOrder: string[] = [];
+        vi.mocked(deps.waitForLock).mockImplementation(async () => {
+          callOrder.push("waitForLock");
+          return true;
+        });
+        vi.mocked(deps.checkAndRecord).mockImplementation(async () => {
+          callOrder.push("checkAndRecord");
+          return true;
+        });
+        const config = createConfig();
+        const input = createInput();
+
+        await handleNotification(input, config, deps);
+
+        expect(callOrder).toEqual(["waitForLock", "checkAndRecord"]);
       });
     });
   });
