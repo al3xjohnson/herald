@@ -5,8 +5,6 @@ vi.mock("fs/promises", () => ({
   readFile: vi.fn(),
   writeFile: vi.fn(),
   mkdir: vi.fn(),
-  open: vi.fn(),
-  unlink: vi.fn(),
 }));
 
 vi.mock("fs", () => ({
@@ -27,24 +25,16 @@ import {
   MAX_HISTORY_SIZE,
   HISTORY_FILE,
   HISTORY_DIR,
-  HISTORY_LOCK_FILE,
 } from "./recent.js";
-import { readFile, writeFile, mkdir, open, unlink } from "fs/promises";
+import { readFile, writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 
 describe("recent plays tracker", () => {
-  const mockFileHandle = {
-    write: vi.fn().mockResolvedValue(undefined),
-    close: vi.fn().mockResolvedValue(undefined),
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-01-15T12:00:00Z"));
     vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(open).mockResolvedValue(mockFileHandle as never);
-    vi.mocked(unlink).mockResolvedValue(undefined);
     vi.mocked(writeFile).mockResolvedValue(undefined);
   });
 
@@ -68,10 +58,6 @@ describe("recent plays tracker", () => {
 
     it("exports correct history directory", () => {
       expect(HISTORY_DIR).toBe("/mock/home/.config/herald");
-    });
-
-    it("exports correct history lock file path", () => {
-      expect(HISTORY_LOCK_FILE).toBe("/mock/home/.config/herald/recent.lock");
     });
   });
 
@@ -104,10 +90,7 @@ describe("recent plays tracker", () => {
     });
 
     it("returns true when hash exists in history", async () => {
-      vi.mocked(existsSync).mockImplementation((path) => {
-        if (path === HISTORY_FILE) return true;
-        return false;
-      });
+      vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFile).mockResolvedValue(
         JSON.stringify([{ hash: "abc123", timestamp: Date.now() - 1000 }])
       );
@@ -117,10 +100,7 @@ describe("recent plays tracker", () => {
     });
 
     it("returns false when hash does not exist", async () => {
-      vi.mocked(existsSync).mockImplementation((path) => {
-        if (path === HISTORY_FILE) return true;
-        return false;
-      });
+      vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFile).mockResolvedValue(
         JSON.stringify([{ hash: "different", timestamp: Date.now() - 1000 }])
       );
@@ -130,10 +110,7 @@ describe("recent plays tracker", () => {
     });
 
     it("returns false for expired entries", async () => {
-      vi.mocked(existsSync).mockImplementation((path) => {
-        if (path === HISTORY_FILE) return true;
-        return false;
-      });
+      vi.mocked(existsSync).mockReturnValue(true);
       // Entry expired 1 second ago
       vi.mocked(readFile).mockResolvedValue(
         JSON.stringify([
@@ -172,10 +149,7 @@ describe("recent plays tracker", () => {
     });
 
     it("appends to existing history", async () => {
-      vi.mocked(existsSync).mockImplementation((path) => {
-        if (path === HISTORY_FILE) return true;
-        return false;
-      });
+      vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFile).mockResolvedValue(
         JSON.stringify([{ hash: "existing", timestamp: Date.now() - 1000 }])
       );
@@ -189,10 +163,7 @@ describe("recent plays tracker", () => {
     });
 
     it("does not add duplicate entry", async () => {
-      vi.mocked(existsSync).mockImplementation((path) => {
-        if (path === HISTORY_FILE) return true;
-        return false;
-      });
+      vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFile).mockResolvedValue(
         JSON.stringify([{ hash: "abc123", timestamp: Date.now() - 1000 }])
       );
@@ -227,10 +198,7 @@ describe("recent plays tracker", () => {
 
     describe("when hash is duplicate", () => {
       beforeEach(() => {
-        vi.mocked(existsSync).mockImplementation((path) => {
-          if (path === HISTORY_FILE) return true;
-          return false;
-        });
+        vi.mocked(existsSync).mockReturnValue(true);
         vi.mocked(readFile).mockResolvedValue(
           JSON.stringify([{ hash: "abc123", timestamp: Date.now() - 1000 }])
         );
@@ -250,10 +218,7 @@ describe("recent plays tracker", () => {
 
     describe("expired entry cleanup", () => {
       it("filters out expired entries and allows reuse of hash", async () => {
-        vi.mocked(existsSync).mockImplementation((path) => {
-          if (path === HISTORY_FILE) return true;
-          return false;
-        });
+        vi.mocked(existsSync).mockReturnValue(true);
         // Entry expired
         vi.mocked(readFile).mockResolvedValue(
           JSON.stringify([
@@ -281,10 +246,7 @@ describe("recent plays tracker", () => {
 
   describe("history size limit", () => {
     it("trims history to MAX_HISTORY_SIZE when writing", async () => {
-      vi.mocked(existsSync).mockImplementation((path) => {
-        if (path === HISTORY_FILE) return true;
-        return false;
-      });
+      vi.mocked(existsSync).mockReturnValue(true);
 
       // Create 15 entries (more than MAX_HISTORY_SIZE of 10)
       const entries = Array.from({ length: 15 }, (_, i) => ({
@@ -311,10 +273,7 @@ describe("recent plays tracker", () => {
     });
 
     it("keeps most recent entries when reading oversized history", async () => {
-      vi.mocked(existsSync).mockImplementation((path) => {
-        if (path === HISTORY_FILE) return true;
-        return false;
-      });
+      vi.mocked(existsSync).mockReturnValue(true);
 
       // Create 15 entries with the target hash being old
       const entries = [
@@ -332,25 +291,21 @@ describe("recent plays tracker", () => {
     });
   });
 
-  describe("history lock handling", () => {
-    beforeEach(() => {
-      vi.mocked(existsSync).mockReturnValue(false);
+  describe("error handling", () => {
+    it("returns empty history on read error", async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFile).mockRejectedValue(new Error("Read error"));
+
+      const result = await isDuplicate("abc123");
+      expect(result).toBe(false); // Empty history means not duplicate
     });
 
-    it("acquires and releases history lock during checkAndRecord", async () => {
-      await checkAndRecord("test");
+    it("returns empty history on invalid JSON", async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFile).mockResolvedValue("not valid json");
 
-      expect(open).toHaveBeenCalledWith(HISTORY_LOCK_FILE, "wx");
-      expect(unlink).toHaveBeenCalledWith(HISTORY_LOCK_FILE);
-    });
-
-    it("handles non-EEXIST lock errors gracefully", async () => {
-      vi.mocked(open).mockRejectedValue(new Error("Permission denied"));
-
-      const result = await checkAndRecord("test");
-
-      // Should fail closed (skip notification to be safe)
-      expect(result).toBe(false);
+      const result = await isDuplicate("abc123");
+      expect(result).toBe(false); // Empty history means not duplicate
     });
   });
 });

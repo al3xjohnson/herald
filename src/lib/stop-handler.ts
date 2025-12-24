@@ -29,8 +29,8 @@ export interface StopDeps {
   ) => Promise<string | null>;
   checkAndRecord: (hash: string) => Promise<boolean>;
   hashContent: (content: string) => string;
-  waitForPlayerLock: () => Promise<boolean>;
-  releasePlayerLock: () => Promise<void>;
+  waitForLock: () => Promise<boolean>;
+  releaseLock: () => Promise<void>;
   playSound: (type: "alert" | "ping") => void;
   playAlert: (projectName?: string) => void;
   getProvider: (config: HeraldConfig["tts"]) => ITTSProvider;
@@ -40,6 +40,7 @@ export interface StopDeps {
 
 /**
  * Generate the message content for a stop event.
+ * Uses consistent content-based messages for both modes.
  */
 export async function getStopMessage(
   input: StopHookInput,
@@ -53,12 +54,9 @@ export async function getStopMessage(
     | "summarizeWithClaude"
   >
 ): Promise<{ content: string; isAlert: boolean }> {
-  const projectName = input.cwd ? basename(input.cwd) : undefined;
-
   if (config.style === "alerts") {
-    // For alerts, use session_id for deduplication (each session gets one alert)
-    const content = `alert:${input.session_id || projectName || "default"}`;
-    return { content, isAlert: true };
+    // For alerts, use consistent content (will play a sound)
+    return { content: "Claude is done", isAlert: true };
   }
 
   // TTS: Get the text to speak
@@ -101,6 +99,9 @@ export async function getStopMessage(
 /**
  * Handle a stop event.
  * This is the main business logic extracted from the hook.
+ *
+ * Flow: acquire lock → check duplicate → play → release lock
+ * Uses unified lock for entire critical section.
  */
 export async function handleStop(
   input: StopHookInput,
@@ -114,29 +115,30 @@ export async function handleStop(
 
   const projectName = input.cwd ? basename(input.cwd) : undefined;
 
-  // Generate message content
+  // Generate message content (consistent content-based hashing)
   const { content: messageContent, isAlert } = await getStopMessage(
     input,
     config,
     deps
   );
 
-  // Check for duplicate and record this play atomically
+  // Hash content for deduplication
   const hash = deps.hashContent(messageContent);
-  const isNew = await deps.checkAndRecord(hash);
 
-  if (!isNew) {
-    return { handled: false, reason: "duplicate" };
-  }
-
-  // Wait for player lock
-  const gotLock = await deps.waitForPlayerLock();
+  // Acquire unified lock (waits for any audio playback to finish)
+  const gotLock = await deps.waitForLock();
   if (!gotLock) {
     return { handled: false, reason: "no_lock" };
   }
 
-  // Play the notification
   try {
+    // Check for duplicate (now protected by lock)
+    const isNew = await deps.checkAndRecord(hash);
+    if (!isNew) {
+      return { handled: false, reason: "duplicate" };
+    }
+
+    // Play the notification
     if (isAlert) {
       if (config.preferences.activate_editor) {
         deps.playAlert(projectName);
@@ -153,7 +155,7 @@ export async function handleStop(
       await deps.withMediaControl(() => ttsProvider.speak(messageContent));
     }
   } finally {
-    await deps.releasePlayerLock();
+    await deps.releaseLock();
   }
 
   return { handled: true, reason: "played" };

@@ -21,8 +21,8 @@ describe("stop-handler", () => {
     summarizeWithClaude: vi.fn().mockResolvedValue(null),
     checkAndRecord: vi.fn().mockResolvedValue(true),
     hashContent: vi.fn((content: string) => `hash:${content}`),
-    waitForPlayerLock: vi.fn().mockResolvedValue(true),
-    releasePlayerLock: vi.fn().mockResolvedValue(undefined),
+    waitForLock: vi.fn().mockResolvedValue(true),
+    releaseLock: vi.fn().mockResolvedValue(undefined),
     playSound: vi.fn(),
     playAlert: vi.fn(),
     getProvider: vi.fn().mockReturnValue(mockTTSProvider),
@@ -57,7 +57,7 @@ describe("stop-handler", () => {
 
   describe("getStopMessage", () => {
     describe("alerts mode", () => {
-      it("generates alert message with session_id", async () => {
+      it("generates content-based alert message", async () => {
         const deps = createMockDeps();
         const config = createConfig({ style: "alerts" });
         const input = createInput();
@@ -65,27 +65,7 @@ describe("stop-handler", () => {
         const result = await getStopMessage(input, config, deps);
 
         expect(result.isAlert).toBe(true);
-        expect(result.content).toBe("alert:session-123");
-      });
-
-      it("falls back to project name when no session_id", async () => {
-        const deps = createMockDeps();
-        const config = createConfig({ style: "alerts" });
-        const input = createInput({ session_id: undefined });
-
-        const result = await getStopMessage(input, config, deps);
-
-        expect(result.content).toBe("alert:project");
-      });
-
-      it("falls back to default when no session_id or project", async () => {
-        const deps = createMockDeps();
-        const config = createConfig({ style: "alerts" });
-        const input = createInput({ session_id: undefined, cwd: undefined });
-
-        const result = await getStopMessage(input, config, deps);
-
-        expect(result.content).toBe("alert:default");
+        expect(result.content).toBe("Claude is done");
       });
     });
 
@@ -223,7 +203,23 @@ describe("stop-handler", () => {
         const result = await handleStop(input, config, deps);
 
         expect(result).toEqual({ handled: false, reason: "disabled" });
-        expect(deps.extractLastAssistantMessage).not.toHaveBeenCalled();
+        expect(deps.waitForLock).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("when lock unavailable", () => {
+      it("returns handled: false when lock times out", async () => {
+        const deps = createMockDeps();
+        vi.mocked(deps.waitForLock).mockResolvedValue(false);
+        const config = createConfig();
+        const input = createInput();
+
+        const result = await handleStop(input, config, deps);
+
+        expect(result).toEqual({ handled: false, reason: "no_lock" });
+        expect(deps.playSound).not.toHaveBeenCalled();
+        expect(deps.playAlert).not.toHaveBeenCalled();
+        expect(deps.checkAndRecord).not.toHaveBeenCalled();
       });
     });
 
@@ -237,22 +233,8 @@ describe("stop-handler", () => {
         const result = await handleStop(input, config, deps);
 
         expect(result).toEqual({ handled: false, reason: "duplicate" });
-        expect(deps.waitForPlayerLock).not.toHaveBeenCalled();
-      });
-    });
-
-    describe("when lock unavailable", () => {
-      it("returns handled: false when lock times out", async () => {
-        const deps = createMockDeps();
-        vi.mocked(deps.waitForPlayerLock).mockResolvedValue(false);
-        const config = createConfig();
-        const input = createInput();
-
-        const result = await handleStop(input, config, deps);
-
-        expect(result).toEqual({ handled: false, reason: "no_lock" });
         expect(deps.playSound).not.toHaveBeenCalled();
-        expect(deps.playAlert).not.toHaveBeenCalled();
+        expect(deps.releaseLock).toHaveBeenCalled(); // Lock still released
       });
     });
 
@@ -267,7 +249,7 @@ describe("stop-handler", () => {
         expect(result).toEqual({ handled: true, reason: "played" });
         expect(deps.playAlert).toHaveBeenCalledWith("project");
         expect(deps.playSound).not.toHaveBeenCalled();
-        expect(deps.releasePlayerLock).toHaveBeenCalled();
+        expect(deps.releaseLock).toHaveBeenCalled();
       });
 
       it("plays sound without editor activation", async () => {
@@ -340,7 +322,7 @@ describe("stop-handler", () => {
 
         await handleStop(input, config, deps);
 
-        expect(deps.releasePlayerLock).toHaveBeenCalled();
+        expect(deps.releaseLock).toHaveBeenCalled();
       });
 
       it("releases lock even if playback throws", async () => {
@@ -355,7 +337,7 @@ describe("stop-handler", () => {
           "Playback failed"
         );
 
-        expect(deps.releasePlayerLock).toHaveBeenCalled();
+        expect(deps.releaseLock).toHaveBeenCalled();
       });
 
       it("releases lock even if TTS throws", async () => {
@@ -368,7 +350,18 @@ describe("stop-handler", () => {
           "TTS failed"
         );
 
-        expect(deps.releasePlayerLock).toHaveBeenCalled();
+        expect(deps.releaseLock).toHaveBeenCalled();
+      });
+
+      it("releases lock when duplicate detected", async () => {
+        const deps = createMockDeps();
+        vi.mocked(deps.checkAndRecord).mockResolvedValue(false);
+        const config = createConfig();
+        const input = createInput();
+
+        await handleStop(input, config, deps);
+
+        expect(deps.releaseLock).toHaveBeenCalled();
       });
     });
 
@@ -391,6 +384,27 @@ describe("stop-handler", () => {
         await handleStop(input, config, deps);
 
         expect(deps.playAlert).toHaveBeenCalledWith(undefined);
+      });
+    });
+
+    describe("unified lock flow", () => {
+      it("acquires lock before checking for duplicates", async () => {
+        const deps = createMockDeps();
+        const callOrder: string[] = [];
+        vi.mocked(deps.waitForLock).mockImplementation(async () => {
+          callOrder.push("waitForLock");
+          return true;
+        });
+        vi.mocked(deps.checkAndRecord).mockImplementation(async () => {
+          callOrder.push("checkAndRecord");
+          return true;
+        });
+        const config = createConfig();
+        const input = createInput();
+
+        await handleStop(input, config, deps);
+
+        expect(callOrder).toEqual(["waitForLock", "checkAndRecord"]);
       });
     });
   });
