@@ -200,10 +200,7 @@ describe("config", () => {
     it("writes merged config to file", async () => {
       await saveConfig({ enabled: false });
 
-      expect(writeFile).toHaveBeenCalledWith(
-        CONFIG_PATH,
-        expect.any(String)
-      );
+      expect(writeFile).toHaveBeenCalledWith(CONFIG_PATH, expect.any(String));
 
       const writtenConfig = JSON.parse(
         vi.mocked(writeFile).mock.calls[0][1] as string
@@ -266,7 +263,11 @@ describe("config", () => {
       );
 
       await saveConfig({
-        preferences: { max_words: 75, summary_prompt: null, activate_editor: true },
+        preferences: {
+          max_words: 75,
+          summary_prompt: null,
+          activate_editor: true,
+        },
       });
 
       const writtenConfig = JSON.parse(

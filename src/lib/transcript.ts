@@ -29,11 +29,11 @@ export function extractLastAssistantMessageFromText(text: string): string {
 
     // Parse JSONL and find last assistant message
     for (let i = lines.length - 1; i >= 0; i--) {
-      const msg: TranscriptMessage = JSON.parse(lines[i]);
+      const msg: TranscriptMessage = JSON.parse(lines[i]) as TranscriptMessage;
       if (msg.type === "assistant" && msg.message?.content) {
         const textParts = msg.message.content
           .filter((block) => block.type === "text" && block.text)
-          .map((block) => block.text!)
+          .map((block) => block.text || "")
           .join(" ");
 
         if (textParts.trim()) {

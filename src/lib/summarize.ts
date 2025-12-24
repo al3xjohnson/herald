@@ -3,13 +3,13 @@ import { DEFAULT_TTS_PROMPT } from "../types.js";
 
 // Pre-compiled regex patterns for better performance
 const CLEAN_PATTERNS: Array<[RegExp, string]> = [
-  [/```[\s\S]*?```/g, " (code block) "],   // Code blocks
-  [/`[^`]+`/g, ""],                         // Inline code
-  [/^#{1,6}\s+/gm, ""],                     // Markdown headers
-  [/\*{1,2}([^*]+)\*{1,2}/g, "$1"],         // Bold/italic
-  [/\[([^\]]+)\]\([^)]+\)/g, "$1"],         // Links (keep text)
-  [/^[\s]*(?:[-*]|\d+\.)\s+/gm, ""],        // Bullets and numbered lists
-  [/\s+/g, " "],                            // Collapse whitespace
+  [/```[\s\S]*?```/g, " (code block) "], // Code blocks
+  [/`[^`]+`/g, ""], // Inline code
+  [/^#{1,6}\s+/gm, ""], // Markdown headers
+  [/\*{1,2}([^*]+)\*{1,2}/g, "$1"], // Bold/italic
+  [/\[([^\]]+)\]\([^)]+\)/g, "$1"], // Links (keep text)
+  [/^[\s]*(?:[-*]|\d+\.)\s+/gm, ""], // Bullets and numbered lists
+  [/\s+/g, " "], // Collapse whitespace
 ];
 
 export function cleanForSpeech(text: string): string {
@@ -64,14 +64,14 @@ export async function summarizeWithClaude(
       });
 
       let output = "";
-      let stderr = "";
+      let _stderr = "";
 
       proc.stdout.on("data", (data: Buffer) => {
         output += data.toString();
       });
 
       proc.stderr.on("data", (data: Buffer) => {
-        stderr += data.toString();
+        _stderr += data.toString();
       });
 
       proc.on("close", (code) => {

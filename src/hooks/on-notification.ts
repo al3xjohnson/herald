@@ -30,7 +30,7 @@ async function readStdin(timeoutMs: number = 5000): Promise<string> {
 
     process.stdin.setEncoding("utf-8");
     process.stdin.on("data", (chunk) => {
-      data += chunk;
+      data += String(chunk);
     });
     process.stdin.on("end", () => {
       clearTimeout(timeout);
@@ -60,7 +60,7 @@ async function main() {
   let input: NotificationHookInput = { notification_type: "" };
 
   try {
-    input = JSON.parse(stdinText);
+    input = JSON.parse(stdinText) as NotificationHookInput;
   } catch {
     process.exit(0);
   }

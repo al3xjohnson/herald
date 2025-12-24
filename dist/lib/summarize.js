@@ -54,12 +54,12 @@ export async function summarizeWithClaude(text, maxWords, customPrompt) {
                 stdio: ["pipe", "pipe", "pipe"],
             });
             let output = "";
-            let stderr = "";
+            let _stderr = "";
             proc.stdout.on("data", (data) => {
                 output += data.toString();
             });
             proc.stderr.on("data", (data) => {
-                stderr += data.toString();
+                _stderr += data.toString();
             });
             proc.on("close", (code) => {
                 if (code === 0 && output.trim()) {

@@ -1,6 +1,13 @@
 # Dependencies
 node_modules/
 
+# Build output (keep dist/ for Claude Code plugin)
+# dist/
+
+# Test coverage
+coverage/
+.nyc_output/
+
 # OS files
 .DS_Store
 
@@ -13,3 +20,6 @@ node_modules/
 # Logs
 *.log
 npm-debug.log*
+
+# Lock files (config)
+.config/herald/

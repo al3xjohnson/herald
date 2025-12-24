@@ -1,4 +1,8 @@
-import { registerProvider, getProvider, getAvailableProviders } from "./provider.js";
+import {
+  registerProvider,
+  getProvider,
+  getAvailableProviders,
+} from "./provider.js";
 import { MacOSTTSProvider } from "./macos.js";
 import { WindowsTTSProvider } from "./windows.js";
 import { ElevenLabsTTSProvider } from "./elevenlabs.js";

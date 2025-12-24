@@ -76,7 +76,7 @@ async function readHistory(): Promise<RecentPlay[]> {
       return [];
     }
     const content = await readFile(HISTORY_FILE, "utf-8");
-    const plays: RecentPlay[] = JSON.parse(content);
+    const plays: RecentPlay[] = JSON.parse(content) as RecentPlay[];
     const now = Date.now();
 
     // Filter expired entries and keep only the most recent MAX_HISTORY_SIZE

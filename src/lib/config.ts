@@ -32,17 +32,17 @@ export async function loadConfig(): Promise<HeraldConfig> {
   try {
     if (existsSync(CONFIG_PATH)) {
       const text = await readFile(CONFIG_PATH, "utf-8");
-      const data = JSON.parse(text);
+      const data = JSON.parse(text) as Partial<HeraldConfig>;
       return {
         ...defaults,
         ...data,
         tts: {
           ...defaults.tts,
-          ...data.tts,
+          ...(data.tts || {}),
         },
         preferences: {
           ...defaults.preferences,
-          ...data.preferences,
+          ...(data.preferences || {}),
         },
       };
     }

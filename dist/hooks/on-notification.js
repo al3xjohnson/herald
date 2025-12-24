@@ -24,7 +24,7 @@ async function readStdin(timeoutMs = 5000) {
         }, timeoutMs);
         process.stdin.setEncoding("utf-8");
         process.stdin.on("data", (chunk) => {
-            data += chunk;
+            data += String(chunk);
         });
         process.stdin.on("end", () => {
             clearTimeout(timeout);
