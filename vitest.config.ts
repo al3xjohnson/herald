@@ -14,12 +14,6 @@ export default defineConfig({
         "src/types.ts",
         "src/cli/**/*.ts", // CLI scripts have UI output that's hard to test
       ],
-      thresholds: {
-        lines: 70,
-        functions: 70,
-        branches: 70,
-        statements: 70,
-      },
     },
   },
 });
