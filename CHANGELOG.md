@@ -1,4 +1,9 @@
 # Changelog
+## [1.8.0](https://github.com/al3xjohnson/herald/compare/v1.7.0...v1.8.0) (2025-12-24)
+
+
+### Features
+* add comprehensive test suite with Vitest ([15ada30](https://github.com/al3xjohnson/herald/commit/15ada30))
 ## [1.7.0](https://github.com/al3xjohnson/herald/compare/v1.6.0...v1.7.0) (2025-12-24)
 
 

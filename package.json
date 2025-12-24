@@ -1,16 +1,20 @@
 {
   "name": "herald",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Configurable notifications for Claude Code - TTS or alert sounds",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "rebuild": "npm run clean && npm run build"
+    "rebuild": "npm run clean && npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.16"
   },
   "engines": {
     "node": ">=18.0.0"
