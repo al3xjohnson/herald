@@ -1,6 +1,13 @@
 # Changelog
 ## [1.10.1](https://github.com/al3xjohnson/herald/compare/v1.10.0...v1.10.1) (2025-12-24)
 
+### Features
+* add ESLint configuration for consistent code quality
+* add Prettier formatting for standardized code style
+* improve type safety across the codebase
+
+### Documentation
+* add new documentation files covering setup, usage, and development workflows
 ## [1.10.0](https://github.com/al3xjohnson/herald/compare/v1.9.0...v1.10.0) (2025-12-24)
 
 
