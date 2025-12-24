@@ -18,7 +18,7 @@ export class WindowsTTSProvider {
             proc.on("error", () => resolve());
         });
     }
-    async isAvailable() {
-        return process.platform === "win32";
+    isAvailable() {
+        return Promise.resolve(process.platform === "win32");
     }
 }

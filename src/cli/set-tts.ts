@@ -10,7 +10,9 @@ async function showStatus() {
   console.log("TTS provider configuration:");
   console.log(`  provider: ${config.tts.provider}`);
   if (config.tts.provider === "elevenlabs") {
-    console.log(`  api_key: ${config.tts.elevenlabs?.apiKey ? "(configured)" : "(not set)"}`);
+    console.log(
+      `  api_key: ${config.tts.elevenlabs?.apiKey ? "(configured)" : "(not set)"}`
+    );
     console.log(`  voice_id: ${config.tts.elevenlabs?.voiceId || "(not set)"}`);
   }
 }
@@ -18,7 +20,9 @@ async function showStatus() {
 async function setProvider(provider: string) {
   const validProviders: TTSProvider[] = ["macos", "windows", "elevenlabs"];
   if (!validProviders.includes(provider as TTSProvider)) {
-    console.error(`Error: Invalid provider. Choose from: ${validProviders.join(", ")}`);
+    console.error(
+      `Error: Invalid provider. Choose from: ${validProviders.join(", ")}`
+    );
     process.exit(1);
   }
   await saveConfig({ tts: { provider: provider as TTSProvider } });
@@ -55,7 +59,9 @@ async function setElevenLabsConfig(key: string, value: string) {
     });
     console.log(`ElevenLabs voice ID set to: ${value}`);
   } else {
-    console.error("Error: Unknown ElevenLabs config key. Use: api_key, voice_id");
+    console.error(
+      "Error: Unknown ElevenLabs config key. Use: api_key, voice_id"
+    );
     process.exit(1);
   }
 }
@@ -78,6 +84,8 @@ if (!command || command === "show") {
   }
   await setElevenLabsConfig(key, value);
 } else {
-  console.error("Unknown command. Use: show, provider <name>, elevenlabs <key> <value>");
+  console.error(
+    "Unknown command. Use: show, provider <name>, elevenlabs <key> <value>"
+  );
   process.exit(1);
 }

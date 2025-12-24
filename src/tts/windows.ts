@@ -23,7 +23,7 @@ export class WindowsTTSProvider implements ITTSProvider {
     });
   }
 
-  async isAvailable(): Promise<boolean> {
-    return process.platform === "win32";
+  isAvailable(): Promise<boolean> {
+    return Promise.resolve(process.platform === "win32");
   }
 }

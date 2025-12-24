@@ -309,9 +309,7 @@ export async function resumeMedia(): Promise<void> {
 /**
  * Wrap a TTS function with automatic media pause/resume.
  */
-export async function withMediaControl<T>(
-  ttsFn: () => Promise<T>
-): Promise<T> {
+export async function withMediaControl<T>(ttsFn: () => Promise<T>): Promise<T> {
   await pauseMedia();
   try {
     return await ttsFn();

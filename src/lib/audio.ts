@@ -25,18 +25,20 @@ export function playSound(type: "alert" | "ping"): void {
 
   if (platform === "darwin") {
     // macOS: Use afplay with system sounds
-    const sound = type === "alert"
-      ? "/System/Library/Sounds/Glass.aiff"
-      : "/System/Library/Sounds/Ping.aiff";
+    const sound =
+      type === "alert"
+        ? "/System/Library/Sounds/Glass.aiff"
+        : "/System/Library/Sounds/Ping.aiff";
     spawn("afplay", [sound], {
       stdio: "ignore",
       detached: true,
     }).unref();
   } else if (platform === "win32") {
     // Windows: Use PowerShell to play system sounds
-    const sound = type === "alert"
-      ? "[System.Media.SystemSounds]::Exclamation.Play()"
-      : "[System.Media.SystemSounds]::Asterisk.Play()";
+    const sound =
+      type === "alert"
+        ? "[System.Media.SystemSounds]::Exclamation.Play()"
+        : "[System.Media.SystemSounds]::Asterisk.Play()";
     spawn("powershell", ["-Command", sound], {
       stdio: "ignore",
       detached: true,
@@ -115,8 +117,9 @@ export function activateEditor(projectName?: string): void {
     const safeProject = projectName ? escapeAppleScript(projectName) : "";
     const safeApp = escapeAppleScript(terminal.app);
 
-    const script = projectName && terminal.process
-      ? `
+    const script =
+      projectName && terminal.process
+        ? `
         tell application "System Events"
           tell process "${safeProcess}"
             set frontmost to true
@@ -129,7 +132,7 @@ export function activateEditor(projectName?: string): void {
           end tell
         end tell
       `
-      : `tell application "${safeApp}" to activate`;
+        : `tell application "${safeApp}" to activate`;
     spawn("osascript", ["-e", script], {
       stdio: "ignore",
       detached: true,

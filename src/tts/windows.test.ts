@@ -86,10 +86,7 @@ describe("WindowsTTSProvider", () => {
 
       expect(spawn).toHaveBeenCalledWith(
         "powershell",
-        [
-          "-Command",
-          expect.stringContaining("''''test''''"),
-        ],
+        ["-Command", expect.stringContaining("''''test''''")],
         expect.any(Object)
       );
 

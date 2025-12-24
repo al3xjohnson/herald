@@ -6,7 +6,9 @@
 
 <p align="center">
   <a href="https://github.com/al3xjohnson/herald/releases"><img src="https://img.shields.io/github/v/release/al3xjohnson/herald" alt="GitHub release"></a>
+  <a href="https://github.com/al3xjohnson/herald/actions/workflows/ci.yml"><img src="https://github.com/al3xjohnson/herald/workflows/CI/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
+  <a href="https://github.com/al3xjohnson/herald"><img src="https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen" alt="Node version"></a>
 </p>
 
 <p align="center">
@@ -91,6 +93,23 @@ Herald stores its configuration in `~/.config/herald/config.json`:
   }
 }
 ```
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+
+- Development setup
+- Code quality standards
+- Testing requirements
+- Pull request process
+
+## Security
+
+For security concerns, please review [SECURITY.md](SECURITY.md) for:
+
+- Reporting vulnerabilities
+- Security best practices
+- Supported versions
 
 ## License
 

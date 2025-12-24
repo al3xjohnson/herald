@@ -86,7 +86,9 @@ describe("lock", () => {
         await acquirePlayerLock();
 
         expect(open).toHaveBeenCalledWith(PLAYER_LOCK_FILE, "wx");
-        expect(mockFileHandle.write).toHaveBeenCalledWith(`${now}:${process.pid}`);
+        expect(mockFileHandle.write).toHaveBeenCalledWith(
+          `${now}:${process.pid}`
+        );
         expect(mockFileHandle.close).toHaveBeenCalled();
       });
 
@@ -277,7 +279,9 @@ describe("lock", () => {
 
       it("handles unlink error gracefully", async () => {
         vi.mocked(existsSync).mockReturnValue(true);
-        vi.mocked(readFile).mockResolvedValue(`${Date.now() - 6 * 60 * 1000}:12345`);
+        vi.mocked(readFile).mockResolvedValue(
+          `${Date.now() - 6 * 60 * 1000}:12345`
+        );
         vi.mocked(unlink).mockRejectedValue(new Error("Unlink failed"));
 
         // Should still try to create lock

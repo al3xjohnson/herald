@@ -136,7 +136,9 @@ describe("recent plays tracker", () => {
       });
       // Entry expired 1 second ago
       vi.mocked(readFile).mockResolvedValue(
-        JSON.stringify([{ hash: "abc123", timestamp: Date.now() - DEDUP_WINDOW_MS - 1000 }])
+        JSON.stringify([
+          { hash: "abc123", timestamp: Date.now() - DEDUP_WINDOW_MS - 1000 },
+        ])
       );
 
       const result = await isDuplicate("abc123");
@@ -254,7 +256,9 @@ describe("recent plays tracker", () => {
         });
         // Entry expired
         vi.mocked(readFile).mockResolvedValue(
-          JSON.stringify([{ hash: "abc123", timestamp: Date.now() - DEDUP_WINDOW_MS - 1000 }])
+          JSON.stringify([
+            { hash: "abc123", timestamp: Date.now() - DEDUP_WINDOW_MS - 1000 },
+          ])
         );
 
         const result = await checkAndRecord("abc123");
@@ -297,9 +301,13 @@ describe("recent plays tracker", () => {
       // Should have at most MAX_HISTORY_SIZE entries
       expect(written.length).toBeLessThanOrEqual(MAX_HISTORY_SIZE);
       // Should include the new hash
-      expect(written.some((e: { hash: string }) => e.hash === "newhash")).toBe(true);
+      expect(written.some((e: { hash: string }) => e.hash === "newhash")).toBe(
+        true
+      );
       // Should keep the most recent entries (higher indices from original)
-      expect(written.some((e: { hash: string }) => e.hash === "hash0")).toBe(false); // Oldest dropped
+      expect(written.some((e: { hash: string }) => e.hash === "hash0")).toBe(
+        false
+      ); // Oldest dropped
     });
 
     it("keeps most recent entries when reading oversized history", async () => {

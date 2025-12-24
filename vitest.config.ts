@@ -9,7 +9,11 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json-summary", "html"],
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts"],
+      exclude: [
+        "src/**/*.test.ts",
+        "src/types.ts",
+        "src/cli/**/*.ts", // CLI scripts have UI output that's hard to test
+      ],
     },
   },
 });

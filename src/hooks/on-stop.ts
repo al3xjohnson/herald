@@ -13,7 +13,7 @@ import { waitForPlayerLock, releasePlayerLock } from "../lib/lock.js";
 import { checkAndRecord, hashContent } from "../lib/recent.js";
 import { extractLastAssistantMessage } from "../lib/transcript.js";
 import { getProvider } from "../tts/index.js";
-import type { StopHookInput, HeraldConfig } from "../types.js";
+import type { StopHookInput } from "../types.js";
 
 // Minimum delay between alert sounds
 const ALERT_MIN_DELAY_MS = 1000;
@@ -37,7 +37,7 @@ async function readStdin(timeoutMs: number = 5000): Promise<string> {
 
     process.stdin.setEncoding("utf-8");
     process.stdin.on("data", (chunk) => {
-      data += chunk;
+      data += String(chunk);
     });
     process.stdin.on("end", () => {
       clearTimeout(timeout);
@@ -69,7 +69,7 @@ async function main() {
   let input: StopHookInput = {};
 
   try {
-    input = JSON.parse(stdinText);
+    input = JSON.parse(stdinText) as StopHookInput;
   } catch {
     // No input or invalid JSON
   }

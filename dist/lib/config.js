@@ -35,11 +35,11 @@ export async function loadConfig() {
                 ...data,
                 tts: {
                     ...defaults.tts,
-                    ...data.tts,
+                    ...(data.tts || {}),
                 },
                 preferences: {
                     ...defaults.preferences,
-                    ...data.preferences,
+                    ...(data.preferences || {}),
                 },
             };
         }

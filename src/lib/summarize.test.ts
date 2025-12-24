@@ -316,9 +316,13 @@ describe("summarizeWithClaude", () => {
 
     await resultPromise;
 
-    expect(spawn).toHaveBeenCalledWith("claude", ["--print", "--model", "haiku"], {
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    expect(spawn).toHaveBeenCalledWith(
+      "claude",
+      ["--print", "--model", "haiku"],
+      {
+        stdio: ["pipe", "pipe", "pipe"],
+      }
+    );
   });
 
   it("returns output on successful completion", async () => {
@@ -400,7 +404,11 @@ describe("summarizeWithClaude", () => {
       },
     });
 
-    const resultPromise = summarizeWithClaude("input text", 25, "Custom instructions");
+    const resultPromise = summarizeWithClaude(
+      "input text",
+      25,
+      "Custom instructions"
+    );
 
     mockProcess.stdout.emit("data", Buffer.from("Result"));
     mockProcess.emit("close", 0);

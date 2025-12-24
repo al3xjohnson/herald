@@ -74,5 +74,7 @@ if (args === "activate_editor off" || args === "activate_editor false") {
   process.exit(0);
 }
 
-console.error("Unknown option. Use: show, max_words <number>, summary <prompt>, summary clear, activate_editor on/off");
+console.error(
+  "Unknown option. Use: show, max_words <number>, summary <prompt>, summary clear, activate_editor on/off"
+);
 process.exit(1);
